@@ -25,23 +25,38 @@ export class PubSubManager{
     }
 
     public userSubscribeToStock(userId:Number, stock:string){
+        //if stocksubscriptions map does not have this particular stock, set it
         if(!this.StockSubscriptions.has(stock)){
             this.StockSubscriptions.set(stock,[]);
         }
+        //if already had stock , than add user 
         this.StockSubscriptions.get(stock)?.push(userId);
+        console.log("stock map",this.StockSubscriptions);
 
+        //if the stock is subscribed for first time 
         if(this.StockSubscriptions.get(stock)?.length===1){
             this.redisClient.subscribe(stock ,(message)=>{
-             
-            } )
+                this.forwardMessageToSubscribedUser(stock,message);
+            } );
+            console.log("subscribes to redis channel",stock);
         }
     }
 
-    removeUserFromStock(userId:Number,stock:string){
+   public removeUserFromStock(userId:Number,stock:string){
+    this.StockSubscriptions.set(stock, this.StockSubscriptions.get(stock)?.filter((user) => user !== userId) || []);
 
+    if (this.StockSubscriptions.get(stock)?.length === 0) {
+        this.redisClient.unsubscribe(stock);
+        console.log(`UnSubscribed to Redis channel: ${stock}`);
+    }
     }
 
-    forwardMessageToUser(userId:string,stockTicker:string,price:string){
-        
-    }
+   public forwardMessageToSubscribedUser(stock:string,message:string){
+
+    console.log(`Message received on channel ${stock}: ${message}`);
+
+    // this.StockSubscriptions.get(stock)?.forEach((sub) => {
+    //     console.log(`Sending message to user: ${sub}`);
+    // });
+}
 }
